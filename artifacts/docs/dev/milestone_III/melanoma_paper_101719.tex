@@ -1,0 +1,273 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{booktabs}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{Melanoma Detection using Knowledge Distillation for Mobile Phones}
+
+
+\author{\IEEEauthorblockN{Heejeong Yoon}
+\IEEEauthorblockA{\textit{School of Data Science} \\
+\textit{University of Virginia}\\
+Charlottesville, Virginia \\
+rpk3ve@virginia.edu}
+\and
+\IEEEauthorblockN{Ryan Healy}
+\IEEEauthorblockA{\textit{School of Data Science} \\
+\textit{University of Virginia}\\
+Charlottesville, Virginia\\
+rah5ff@virginia.edu}
+}
+
+\maketitle
+
+\begin{abstract}
+We explore using knowledge distillation to classify melanoma specifically for use in a model deployed on a mobile device.
+\url{https://github.com/rah-ds/Deep_Learning_Final_Project}
+\end{abstract}
+
+\begin{IEEEkeywords}
+Melanoma Image Classification, Mobile deployment, Kaggle, HAM10000, Edge deployment
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+
+
+\maketitle
+
+\section*{Motivation}
+
+Convenient smartphone applications for detecting melanoma are becoming more popular. Despite improvements, the cost of misdiagnosing melanoma remains high; especially for people with a personal or family history of skin cancer and those taking long-term immunosuppressive drugs. 
+
+We explore current benchmarks, architectures, and trade-offs in effective knowledge distillation. We propose a model that can work locally on most smart phones without the need for an Internet connection and focus on building user trust while promoting explainable AI.
+
+\section*{Method Overview}
+
+Knowledge distillation (KD) uses the paradigm of the teacher-student model, which involves training two different models.
+
+To train the larger teacher model, we will use full fine-tuning on a frozen ResNet50 to reasonably approximate some benchmark learning. Given the high cost of missing a potential diagnosis of melanoma, we optimize for high model sensitivity and explore the trade-offs at a high level of model certainty. 
+
+To train a small and efficient student model, we will use offline knowledge distillation, where the larger and more powerful frozen teacher model "guides" a smaller phone-sized student model in learning; using both the teacher's outputs and hard ground truth labels as learning targets. 
+
+We explore the (KD) tuning temperature $T$, the mix weighting parameter $\alpha$, as well as different losses, and the effect of floating point quantization of the model weights on the performance of the unseen holdout set.
+
+The approximate model sizes that we will target during model inference are 25 MB for mobile deployments and 2 MB for edge deployments.
+
+\section*{Dataset}
+
+The data set on which we will train and evaluate is HAM10000 - (Humans Against Machines 10,000): \url{https://www.kaggle.com/datasets/kmader/skin-cancer-mnist-ham10000}
+
+This widely used benchmark data set contains ($n$ = 10,015) images of expert-verified "cancerous" and "noncancerous" lesions in a wide variety of modalities. 
+
+The data card for HAM10000 suggests using the "competition" website for access to a fair test set. We were unable to access this test set, and so we will instead use a standard 80-20\%  train and holdout split to fairly approximate general model performance. 
+
+We focus on cancerous melanoma (mel) and ignore similarly cancerous basal cell carcinoma (bcc). Our target class of melanoma is ~11\% of the total data.
+
+\section*{Literature Review}
+\subsection*{Previous Methods}
+
+Several recent studies have used KD for Dermoscopy images.\\
+
+\begin{itemize}
+\item Islam et al. used a large teacher (ResNet152V2, ConvNeXt-Base, ViT-Base, 236M parameters) to train a small student. Global max pooling outperformed average pooling. Simple knowledge distillation settings ($T$ 1, $\alpha$ 0.5) worked well on HAM10000.\cite{islam2024}\\
+
+\item Kabir et al. used smaller teachers (ResNet50, DenseNet161) and students (<1M parameters), showing that small models can perform well. \cite{kabir2024}\\
+
+\item Nazari et al. proposed compact attention-augmented EfficientNet-B3 models, achieving high accuracy with 98\% fewer parameters and 20$\times$ faster inference. \cite{nazari2025}\\
+
+\item Polino et al. combined knowledge distillation and quantization. They optimized quantization point placement via gradient descent. Experiments showed up to 10× compression with maintained or improved accuracy. a 4-bit ResNet18 outperformed the standard version on ImageNet (73.31\% vs 69.75\%). \cite{Polino2018}\\
+
+\item Touvron et al. applied KD from CNN teachers to Vision Transformer (ViT) students, demonstrating that distillation can improve data efficiency and performance in transformer-based image models. \cite{Touvron2021}\\
+
+\item Gou et al. provided a comprehensive survey of KD techniques, covering student-teacher architectures, soft-label learning strategies, and training objectives across domains, including computer vision and medical imaging. \cite{Gou2021} \\
+
+
+\subsection*{Gaps in Current Research}
+
+We aim to address some of the following research gaps.\\
+
+\begin{itemize}
+    \item Most KD studies report accuracy, $F_1$ score and model parameter size, but studies on sensitivity and model calibration are often missing. For both patients and providers, detection at a clear operating point matters most (e.g., precision / specificity at high sensitivity). \\
+    \item Student models can inherit teacher bias, and discussion of that bias can be limited. To address this, we will focus on actionable uncertainty estimates and clear model calibrations.\\
+    \item Performance of melanoma classification in edge devices is often lacking where power and memory constraints are even more essential. We expect to report models that can fit on edge device sizes and comment on their trade-offs 
+\end{itemize}
+
+\end{itemize}
+\section*{Experiment Plan}
+\subsection*{Teacher and Student Models}
+
+Our baseline teacher-student modeling begins with
+
+\begin{itemize}
+    \item \textbf{Teacher}: ResNet50 (ImageNet weights, global average pooling, frozen, fine-tuned). 
+    \item \textbf{Student}: MobileNetV3-Small, lightweight head.
+    \item we will use the standard generalizable ADAM Optimizer
+    \item Kaiming Weight Initialization
+\end{itemize}
+
+To validate successful teacher training, we will also benchmark that model against some more naive Classification models such as Logistic Regression, Gradient Boosted Machines, and Random Forests to motivate the complexity of the teacher model before Knowledge Distillation.
+
+In ablation, we will explore different losses, student pooling layers, KD hyperparameters, and model hyperparameters. We elaborate on each in the following.
+
+\subsection*{Different Losses and Pool Methods}
+
+For student losses ($L$)
+
+\begin{itemize} 
+    \item \textbf{unweighted BCE} - no opinion on how rare the target happens to be
+    \item \textbf{weighted BCE} - we give more weight to the relatively rare melanoma cases - exploring the melanoma weights of [0.6, 0.7, 0.8]
+    \item \textbf{focal loss} - using $\gamma$ - [1, 2, 4]
+\end{itemize}
+
+Variation in Pooling Layers to evaluate which best captures patterns for the smaller student model.
+
+   \begin{itemize}
+    \item \textbf{Global Max Pooling} - to learn the most discriminative regions of the image
+    \item \textbf{Average Pooling} - which can focus on capturing overall patterns
+\end{itemize}
+
+\subsection*{KD Hyperparameters}
+
+The "strict" teacher with its probability predictions is governed by temperature $T$. A higher $T$ means that the teacher's probability distribution is more uniform and a lower $T$ is more opinionated. \cite{PytorchKD}
+
+The respective weights of the teacher/ground truth mixture of losses are governed by $\alpha$. \cite{PytorchKD}
+
+We test how the "opinion" of the teacher model and the "mix" with ground-truth labels affect the quality of the student model. These are respectively governed by:
+
+\begin{itemize}
+    \item \textbf{Temperature ($T$)} - [1,2]
+    \item \textbf{Mixing Level ($\alpha$)} - [0.1, 0.5, 0.7, 0.9]
+\end{itemize}
+
+\subsection*{Standard Training Hyperparameters}
+
+If time, we explore the following standard hyperparameters.
+
+\begin{itemize}
+  \item \textbf{Learning Rate} - [0.00001, 0.0001, 0.001, 0.01]
+  
+  \item \textbf{Batch Size} - [16, 32, 64, 128, 256]
+  
+  \item \textbf{Dropout Rate} Applied to  the fully connected layers to reduce overfitting - [0.1, 0.2, 0.3, 0.4, 0.5]
+
+  \item \textbf{Quantization} - we explore floating point bit sizes of [4,8,16,32,64] to evaluate smaller models and their respective performance trade offs
+\end{itemize}
+
+The search space for these parameters is a starting point and will be adjusted based on model performance. Bit quantization currently depends on training with an NVIDIA GPU, which is subject to availability, as GPU budgets can be variable.
+
+
+\section*{Evaluation Plan}
+\subsection*{Data and Splits}
+We will use HAM10000 with binary labels showing melanoma and non-melanoma images. We split the data using the train (70) /test (15) / holdout (15) method. With Test being used to stop training and holdout being used only to compare models.
+
+
+Training will be done using NVIDIA GPUs on the UVA Rivanna Cluster. If allocation is scarce, training can still be done locally using a Mac M3 MPS chip; what can be done with Bit quantization limited.
+
+\subsection*{Main Metrics}
+
+The main metrics for which we will optimize to demonstrate model quality include; Receiver Operating Curve and Area under the curve (ROC-AUC) and Precision Area Under the Curve (PR-AUC).
+We choose the threshold for 95\% sensitivity and then report the specificity, PPV, NPV at that threshold.
+
+
+\section*{Reporting}
+For each ablation, we report the following using the holdout scores for model comparison.
+
+\begin{itemize}
+    \item Area under the Curve (AUC) scores 
+    \item performance at 95\% Sensitivity  and at that threshold report Specificity, Positive Predicted Value (PPV), Negative Predicted Value (NPV)
+    \item Model Parameter Count
+    \item Floating-Point Operations Per Second (FLOPs)
+    \item $F_1$ score
+    \item Model Latency
+    \item Model size (MB)
+\end{itemize}
+
+
+\section*{Preliminary Experiments}
+
+Our first baseline models were trying to make sure we could learn the problem. We started with three common sklearn classification models with handcrafted pixel features and some meta data like sex and age and further validated tuned with small grid search to some common hyper parameters.\\
+
+\textbf{Simple Baseline Models}\\
+
+\begin{tabular}{lrr}
+\toprule
+Model & Accuracy & ROC AUC \\
+\midrule
+gbm tuned & 0.901 & 0.897 \\
+gbm baseline & 0.904 & 0.877 \\
+logistic regression tuned & 0.903 & 0.877 \\
+rf tuned & 0.894 & 0.865 \\
+rf baseline & 0.893 & 0.857 \\
+\bottomrule
+\end{tabular}\\
+
+The concern here is that we are actually not learning the data here, as only ~10\% of the data have melanoma. Before anything else, some feature engineering is needed to validate that we are actually learning the images. \\
+
+\textbf{Proposed Teacher Model Resnet-18}\\
+\centering
+\begin{tabular}{ll}
+\hline
+ & Value \\
+\hline
+Model & resnet18 \\
+Trainable Params (total) & 11,177,538 \\
+Trainable Params (trainable) & 1,026 \\
+Validation Accuracy & 84.375 \\
+Best Training Epoch & 11 \\
+\hline
+\end{tabular}
+
+
+\section*{Next Steps}
+
+The next steps after choosing our teacher model will be to configure the teacher student architecture and run some focused ablation studies with a focus on Temperature, Loss Weighting.
+
+Following a stable student model, we can perform the Post-Training quantization testing fp32 -> 8.
+
+We will configure a Project specific Weights and Bias repo to track the studies.
+
+If there is time, explore the proposed search space using a Bayesian Optimization search.
+
+\section*{Member Contributions}
+
+- Angie did a lot of the writing and brainstorming, she provided review of code, and did a lot of the heavy lifting with the literature review
+
+- Ryan did the coding, editing, and compiling of reports and figures. 
+
+
+\begin{thebibliography}{99}
+
+\bibitem{islam2024}
+N. Islam, K. M. Hasib, F. A. Joti, A. Karim, and S. Azam, "Leveraging Knowledge Distillation for Lightweight Skin Cancer Classification: Balancing Accuracy and Computational Efficiency," arXiv:2406.17051, 2024. Available: \url{https://arxiv.org/abs/2406.17051}.
+
+\bibitem{kabir2024}
+M. R. Kabir, R. H. Borshon, M. K. Wasi, R. M. Sultan, A. Hossain, and R. Khan, "Skin cancer detection using lightweight model souping and ensembling knowledge distillation for memory-constrained devices," Intelligence-Based Medicine, vol. 10, Art. no. 100176, 2024, doi:10.1016/j.ibmed.2024.100176.
+
+\bibitem{nazari2025}
+S. Nazari and R. Garcia, "Going smaller: Attention-based models for automated melanoma diagnosis," Computers in Biology and Medicine, vol. 185, Art. no. 109492, 2025. Available: \url{https://www.sciencedirect.com/science/article/pii/S0010482524015774}.
+
+\bibitem{PytorchKD}
+PyTorch. "Knowledge Distillation Tutorial". *PyTorch Tutorials*, \url{https://docs.pytorch.org/tutorials/beginner/knowledge_distillation_tutorial.html}. Accessed [October 24, 2025].
+
+\bibitem{Polino2018}
+Polino, A., Pascanu, R., and Alistarh, D. (2018). “Model compression via distillation and quantization” Available:  https://arxiv.org/abs/1802.05668
+
+\bibitem{Touvron2021}
+Touvron, H., Cord, M., Douze, M., and Massa, F., Sablayrolles, A., Jegou, H. (2021). “Training data-efficient image transformers \& distillation through attention.” Available:  \url{https://arxiv.org/abs/2012.12877}
+
+\bibitem{Gou2021}
+Gou, J., Yu, B., Maybank, S. J., and Tao, D. (2021). “Knowledge distillation: A survey.” Available: IJCV, 129(6), 1789–1819. https://link.springer.com/article/10.1007/s11263-021-01453-z
+
+\end{thebibliography}
+\end{document}
+

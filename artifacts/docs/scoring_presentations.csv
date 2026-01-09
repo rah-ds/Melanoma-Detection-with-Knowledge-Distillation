@@ -1,0 +1,18 @@
+﻿group,technical_depth_1_5,innovation_1_5,experimental_rigor_1_5,result_interpretation_1_5,presentation_quality_1_5,reproducibility_1_5,overall_score_1_5,recommend_best_insight_0_1:,strengths_comment,weaknesses_comment,suggestions_comment,questions_for_authors
+1,5,5,5,5,5,4,5,1,"loved the ablation, it’s a cool question on the voting vs pooling question. The Tiling and ViT are a great read",some of the GitHub notebooks were partially rendered,,none!
+2,3,3,4,3,4,3,3,0,"the saliency map was cool and loved the presentation,","doesn't make sense to me unless you consider different archtectures, esp when the mlp isn't ""learning"" it should",I would add in cross validation and a deeper network',
+3,3,4,4,3,5,4,4,0,"this is really hard problem, I can always appreciate a good weather model",why did the transformer perform worse than LR? The results all cluster together and miss in a way that isn't useful,"Table I shows that at T=3, Linear Regression (7.863) outperforms LSTM (7.966). This undermines the paper's narrative that deep learning captures ""nonlinear patterns"" better. The authors don't reconcile this contradiction.","you likely have data leakage, split before windowing (this has happened to me before)"
+4,5,5,4,4,5,5,5,1,this was really well done for a course project!,"you acknowledge data leakage but don't fully address it, it inflates your metrics",I would have loved to see unet vs unet phyics in the ablation,good job!
+5,5,4,4,4,3,5,4,0,"cool problem, good code organization",quantization was lacking,get the quantization working early rather than last,
+6,5,3,3,3,5,4,3,0,cool problem!,"mlps either need a lot of parameters or specific ways to deal with neighboring data, we learned about that, it would've been cool to see a gnn",,
+7,4,4,5,5,5,4,4,0,great job! ,can't find hyper paramters in paper,,
+8,3,3,3,3,3,4,4,0,nice work!,"why not ordinal encode the 1,2,3,4 … also seemed like a shallow network",,
+9,5,5,5,5,5,4,5,1,this was really well done!,the hops don't map sense to me,,
+10,4,5,4,4,4,4,4,0,really neat idea!,Tweets only in English when War talked about very differently in different languages,,
+11,4,5,4,4,5,4,4,0,you put a lot of love into this and it showed!,"I think this needed a ground up rework unfortunately, you did a great job saving it though, and I really loved the ambition",,
+12,4,4,3,3,4,4,4,0,nice job,the stratified sampling seemed off,,
+13,4,4,4,4,5,3,4,0,nice job!,"bad code organization and needed to train the model that was working more, rf definitely overfit",,
+14,4,4,3,4,4,4,4,0,nice job!,missing a hold out set and the densenet and resnet use different resolutions,,
+15,5,4,5,4,4,4,5,0,really good job!,I wish,,
+16,4,4,4,4,4,4,4,0,nice job!,,,
+17,4,4,4,4,3,4,4,0,nice job!,,,
